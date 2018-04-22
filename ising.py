@@ -4,14 +4,14 @@ import math
 import random
 import os
 
-height = 500
-width = 500
+height = 2
+width = 2
 
-modulus = int(math.floor(height*width/10.))
-steps = 1000*modulus
+modulus = int(math.ceil(height*width/10.))
+steps = 100*modulus
 print(modulus)
 
-beta = 10
+beta = 1
 J = 1
 mu = 1
 
@@ -47,6 +47,8 @@ spins = np.ones((height+2, width+2),dtype='int')
 for i in range(height):
 	for j in range(width):
 		spins[i,j] = random.choice([-1,1])
+
+print(spins)
 
 os.system("mkdir data")
 os.system("mkdir data/spins")
