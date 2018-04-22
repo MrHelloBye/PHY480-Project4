@@ -2,6 +2,7 @@ from numba import jit
 import numpy as np
 import math
 import random
+import os
 
 height = 500
 width = 500
@@ -47,7 +48,8 @@ for i in range(height):
 	for j in range(width):
 		spins[i,j] = random.choice([-1,1])
 
-
+os.system("mkdir data")
+os.system("mkdir data/spins")
 energy_file = open("data/energy.csv", "w")
 moment_file = open("data/moment.csv", "w")
 
