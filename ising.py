@@ -3,9 +3,10 @@ import numpy as np
 import math
 import random
 import os
+import matplotlib.pyplot as plt
 
-height = 2
-width = 2
+height = 10
+width = 10
 
 modulus = int(math.ceil(height*width/10.))
 steps = 100*modulus
@@ -31,8 +32,8 @@ def Energy(spins):
 
 	for i in range(height):
 		for j in range(width):
-			Energy += spins[i,j]*spins[i+1,j]
-			Energy += spins[i,j]*spins[i,j+1]
+			Energy += -J*spins[i,j]*spins[i+1,j]
+			Energy += -J*spins[i,j]*spins[i,j+1]
 
 	return Energy
 
@@ -46,9 +47,9 @@ def Moment(spins):
 spins = np.ones((height+2, width+2),dtype='int')
 for i in range(height):
 	for j in range(width):
-		spins[i,j] = random.choice([-1,1])
+		spins[i,j] = -1#random.choice([-1,1])
 
-print(spins)
+
 
 os.system("mkdir data")
 os.system("mkdir data/spins")
@@ -58,22 +59,25 @@ moment_file = open("data/moment.csv", "w")
 energy = Energy(spins)
 moment = Moment(spins)
 
+energy_file.write(str(energy)+"\n")
+moment_file.write(str(moment)+"\n")
+
 e4 = np.exp(-4*J*beta)
 e8 = np.exp(-8*J*beta)
 
 @jit
 def Calc_dE(spins,i,j):
-	return -2*spins[i,j]*(spins[i-1,j]+spins[i+1,j]+spins[i,j-1]+spins[i,j+1])
+	return -2*(-J*spins[i,j])*(spins[i-1,j]+spins[i+1,j]+spins[i,j-1]+spins[i,j+1])
 
 @jit
 def Accept(dE):
 	accept = False
-	if dE >= 0:
+	if dE <= 0:
 		accept = True
-	elif dE == -4:
+	elif dE == 4:
 		if random.uniform(0,1) <= e4:
 			accept = True
-	elif dE == -8:
+	elif dE == 8:
 		if random.uniform(0,1) <= e8:
 			accept = True
 	else:
@@ -100,6 +104,10 @@ for k in range(steps):
 		moment_file.write(str(moment)+"\n")
 		np.savetxt("data/spins/spins"+str(k)+".csv",spins,delimiter=',')
 
+print("Energy: ",energy," inc_Energy: ",Energy(spins))
+UpdateBoundaries(spins)
+plt.imshow(spins)
+plt.show()
 
 energy_file.close()
 moment_file.close()
