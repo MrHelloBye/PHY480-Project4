@@ -24,7 +24,6 @@ plt.show()
 names = os.listdir("data/spins")
 names.sort()
 print(names)
-
 i = 0
 for filename in names:
 	data = np.loadtxt("data/spins/"+filename,delimiter=',')

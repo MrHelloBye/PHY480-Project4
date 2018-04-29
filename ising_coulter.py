@@ -5,8 +5,8 @@ import random
 import os
 import matplotlib.pyplot as plt
 
-height = 10
-width = 10
+height = 2
+width = 2
 
 modulus = int(math.ceil(height*width/10.))
 steps = 100*modulus
@@ -15,12 +15,6 @@ print(modulus)
 beta = 1
 J = 1
 mu = 1
-#E = 0
-#M = 0
-#meanE = 0
-#meanM = 0
-#spec_heat = 0
-#suscept = 0
 
 @jit
 def UpdateBoundaries(spins):
@@ -36,25 +30,24 @@ def Energy(spins):
 
 	UpdateBoundaries(spins)
 
-	for i in range(1,height+1):
-		for j in range(1,width+1):
+	for i in range(height):
+		for j in range(width):
 			Energy += -J*spins[i,j]*spins[i+1,j]
 			Energy += -J*spins[i,j]*spins[i,j+1]
 
 	return Energy
 
 def Moment(spins):
-    mag_mom = 0
-    for i in range(1, height+1):
-        for j in range(1, width+1):
-            mag_mom += spins[i,j]
-            #print('i: ',i, 'j: ',j, 'spin: ',spins[i,j])
-    return mag_mom
+	mag_mom = 0
+	for i in range(height):
+		for j in range(width):
+			mag_mom += spins[i,j]
+	return mag_mom
 
 spins = np.ones((height+2, width+2),dtype='int')
-for i in range(1, height+1):
-	for j in range(1, width+1):
-		spins[i,j] = random.choice([-1,1])
+for i in range(height):
+	for j in range(width):
+		spins[i,j] = -1#random.choice([-1,1])
 
 
 
@@ -91,33 +84,27 @@ def Accept(dE):
 		print("ya done goofed")
 	return accept
 
-print('Moment: ',Moment(spins))
-test = input("A thing: ")
-
 for k in range(steps):
-    i = random.randint(1,height)
-    j = random.randint(1,width)
-    
-    UpdateBoundaries(spins)
-    
-    dE = Calc_dE(spins,i,j)
-    
-    if Accept(dE):
-        #print("spin1: ",spins[i,j],'i: ',i,'j: ',j)
-        spins[i,j] *= -1
-        #print("spin2: ",spins[i,j])
-        moment += 2*spins[i,j]
-        energy += dE
+	i = random.randint(0,height-1)
+	j = random.randint(0,width-1)
 
-    print('k: ',k, "energy: ", energy)
+	UpdateBoundaries(spins)
+	
+	dE = Calc_dE(spins,i,j)
 
-    if not (k%modulus):
-        energy_file.write(str(energy)+"\n")
-        moment_file.write(str(moment)+"\n")
-        np.savetxt("data/spins/spins"+str(k)+".csv",spins,delimiter=',')
+	if Accept(dE):
+		spins[i,j] *= -1
+		moment += spins[i,j]
+		energy += dE
 
-print("Incremented Energy: ",energy,"Energy: ",Energy(spins))
-print("Incremented Moment: ", moment, "Moment: ", Moment(spins))
+	print('k: ',k, "energy: ", energy)
+
+	if not (k%modulus):
+		energy_file.write(str(energy)+"\n")
+		moment_file.write(str(moment)+"\n")
+		np.savetxt("data/spins/spins"+str(k)+".csv",spins,delimiter=',')
+
+print("Energy: ",energy," inc_Energy: ",Energy(spins))
 UpdateBoundaries(spins)
 plt.imshow(spins)
 plt.show()
