@@ -5,11 +5,11 @@ import random
 import os
 import matplotlib.pyplot as plt
 
-height = 10
-width = 10
+height = 2
+width = 2
 
 modulus = int(math.ceil(height*width/10.))
-steps = 100*modulus
+steps = 10*modulus
 print(modulus)
 
 beta = 1
@@ -24,10 +24,10 @@ mu = 1
 
 @jit
 def UpdateBoundaries(spins):
-	for i in range(height):
+	for i in range(height+2):
 		spins[i,-1] = spins[i,1]
 		spins[i,0] = spins[i,-2]
-	for j in range(width):
+	for j in range(width+2):
 		spins[-1,j] = spins[1,j]
 		spins[0,j] = spins[-2,j]
 
@@ -92,7 +92,6 @@ def Accept(dE):
 	return accept
 
 print('Moment: ',Moment(spins))
-test = input("A thing: ")
 
 for k in range(steps):
     i = random.randint(1,height)
