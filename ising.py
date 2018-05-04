@@ -5,25 +5,8 @@ import random
 import os
 import matplotlib.pyplot as plt
 
-height = 2
-width = 2
-
-modulus = int(math.ceil(height*width/10.))
-steps = 10*modulus
-print(modulus)
-
-beta = 1
-J = 1
-mu = 1
-#E = 0
-#M = 0
-#meanE = 0
-#meanM = 0
-#spec_heat = 0
-#suscept = 0
-
 @jit
-def UpdateBoundaries(spins):
+def UpdateBoundaries(spins,height,width):
 	for i in range(height+2):
 		spins[i,-1] = spins[i,1]
 		spins[i,0] = spins[i,-2]
@@ -31,10 +14,10 @@ def UpdateBoundaries(spins):
 		spins[-1,j] = spins[1,j]
 		spins[0,j] = spins[-2,j]
 
-def Energy(spins):
+def Energy(spins,height,width,J):
 	Energy = 0
 
-	UpdateBoundaries(spins)
+	UpdateBoundaries(spins,height,width)
 
 	for i in range(1,height+1):
 		for j in range(1,width+1):
@@ -43,7 +26,7 @@ def Energy(spins):
 
 	return Energy
 
-def Moment(spins):
+def Moment(spins,height,width):
     mag_mom = 0
     for i in range(1, height+1):
         for j in range(1, width+1):
@@ -51,33 +34,13 @@ def Moment(spins):
             #print('i: ',i, 'j: ',j, 'spin: ',spins[i,j])
     return mag_mom
 
-spins = np.ones((height+2, width+2),dtype='int')
-for i in range(1, height+1):
-	for j in range(1, width+1):
-		spins[i,j] = random.choice([-1,1])
-
-
-
-os.system("mkdir data")
-os.system("mkdir data/spins")
-energy_file = open("data/energy.csv", "w")
-moment_file = open("data/moment.csv", "w")
-
-energy = Energy(spins)
-moment = Moment(spins)
-
-energy_file.write(str(energy)+"\n")
-moment_file.write(str(moment)+"\n")
-
-e4 = np.exp(-4*J*beta)
-e8 = np.exp(-8*J*beta)
+@jit
+def Calc_dE(spins,J,i,j):
+	return -2*(-J*spins[i,j])*(spins[i-1,j]+
+		spins[i+1,j]+spins[i,j-1]+spins[i,j+1])
 
 @jit
-def Calc_dE(spins,i,j):
-	return -2*(-J*spins[i,j])*(spins[i-1,j]+spins[i+1,j]+spins[i,j-1]+spins[i,j+1])
-
-@jit
-def Accept(dE):
+def Accept(dE,e4,e8):
 	accept = False
 	if dE <= 0:
 		accept = True
@@ -91,35 +54,64 @@ def Accept(dE):
 		print("ya done goofed")
 	return accept
 
-print('Moment: ',Moment(spins))
+@jit
+def Ising(height,width,temperature):
+	modulus = int(math.ceil(height*width/10.))
+	steps = 10000*modulus
+	print(modulus)
 
-for k in range(steps):
-    i = random.randint(1,height)
-    j = random.randint(1,width)
-    
-    UpdateBoundaries(spins)
-    
-    dE = Calc_dE(spins,i,j)
-    
-    if Accept(dE):
-        #print("spin1: ",spins[i,j],'i: ',i,'j: ',j)
-        spins[i,j] *= -1
-        #print("spin2: ",spins[i,j])
-        moment += 2*spins[i,j]
-        energy += dE
+	beta = 1/temperature
+	J = 1
+	mu = 1
 
-    print('k: ',k, "energy: ", energy)
+	spins = np.ones((height+2, width+2),dtype='int')
+	for i in range(1, height+1):
+		for j in range(1, width+1):
+			spins[i,j] = random.choice([-1,1])
 
-    if not (k%modulus):
-        energy_file.write(str(energy)+"\n")
-        moment_file.write(str(moment)+"\n")
-        np.savetxt("data/spins/spins"+str(k)+".csv",spins,delimiter=',')
+	os.system("mkdir data")
+	os.system("mkdir data/spins")
+	os.system("mkdir data/spins/spins"+str('%.2f'%temperature))
+	os.system("mkdir data/energy")
+	os.system("mkdir data/moment")
+	energy_file = open("data/energy/energy"+str('%.2f'%temperature)+".csv", "w")
+	moment_file = open("data/moment/moment"+str('%.2f'%temperature)+".csv", "w")
 
-print("Incremented Energy: ",energy,"Energy: ",Energy(spins))
-print("Incremented Moment: ", moment, "Moment: ", Moment(spins))
-UpdateBoundaries(spins)
-plt.imshow(spins)
-plt.show()
+	energy = Energy(spins,height,width,J)
+	moment = Moment(spins,height,width)
 
-energy_file.close()
-moment_file.close()
+	energy_file.write(str(energy)+"\n")
+	moment_file.write(str(moment)+"\n")
+
+	e4 = np.exp(-4*J*beta)
+	e8 = np.exp(-8*J*beta)
+
+	for k in range(steps):
+	    i = random.randint(1,height)
+	    j = random.randint(1,width)
+	    
+	    UpdateBoundaries(spins,height,width)
+	    
+	    dE = Calc_dE(spins,J,i,j)
+	    
+	    if Accept(dE,e4,e8):
+	        spins[i,j] *= -1
+	        moment += 2*spins[i,j]
+	        energy += dE
+
+	    print('k: ',k, "energy: ", energy)
+
+	    if not (k%modulus):
+	        energy_file.write(str(energy)+"\n")
+	        moment_file.write(str(moment)+"\n")
+	        np.savetxt("data/spins/spins"+str('%.2f'%temperature)+
+	        	"/spins"+str(k)+".csv",spins,delimiter=',')
+
+	print("Incremented Energy: ", energy, "Energy: ", Energy(spins,height,width,J))
+	print("Incremented Moment: ", moment, "Moment: ", Moment(spins,height,width))
+	UpdateBoundaries(spins,height,width)
+	#plt.imshow(spins)
+	#plt.show()
+
+	energy_file.close()
+	moment_file.close()
